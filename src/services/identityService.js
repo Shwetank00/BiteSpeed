@@ -1,4 +1,5 @@
 const knex = require('../db/knex');
+const { buildResponse } = require('../utils/responseBuilder');
 
 async function reconcile({ email, phoneNumber }) {
   const trx = await knex.transaction();
@@ -24,14 +25,7 @@ async function reconcile({ email, phoneNumber }) {
 
       await trx.commit();
 
-      return {
-        contact: {
-          primaryContatctId: newContact.id,
-          emails: newContact.email ? [newContact.email] : [],
-          phoneNumbers: newContact.phone_number ? [newContact.phone_number] : [],
-          secondaryContactIds: []
-        }
-      };
+      return buildResponse(newContact, []);
     }
 
     // Step 2: Expand to full connected component via iterative closure
@@ -150,40 +144,7 @@ async function reconcile({ email, phoneNumber }) {
       .orderBy('created_at', 'asc')
       .orderBy('id', 'asc');
 
-    const emails = [];
-    const phoneNumbers = [];
-    const secondaryContactIds = [];
-
-    // Primary first
-    if (truePrimary.email) emails.push(truePrimary.email);
-    if (truePrimary.phone_number) phoneNumbers.push(truePrimary.phone_number);
-
-    // Then others
-    for (const c of finalComponent) {
-      if (c.email && !emails.includes(c.email)) {
-        emails.push(c.email);
-      }
-      if (c.phone_number && !phoneNumbers.includes(c.phone_number)) {
-        phoneNumbers.push(c.phone_number);
-      }
-      if (c.id !== truePrimary.id) {
-        secondaryContactIds.push(c.id);
-      }
-    }
-
-    // Ensure secondaryContactIds is sorted (though order by created_at / id mostly covers it, spec asks for sorted asc)
-    secondaryContactIds.sort((a, b) => a - b);
-
-    await trx.commit();
-
-    return {
-      contact: {
-        primaryContatctId: truePrimary.id,
-        emails,
-        phoneNumbers,
-        secondaryContactIds
-      }
-    };
+    return buildResponse(truePrimary, finalComponent);
   } catch (error) {
     await trx.rollback();
     throw error;
