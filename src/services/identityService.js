@@ -124,7 +124,24 @@ async function reconcile({ email, phoneNumber }) {
         });
     }
 
-    // Advanced logic to be added here for creation of new secondary
+    // Step 5: Create a new secondary if request contains new info not in component
+    const hasNewEmail = email && !emailsSeen.has(email);
+    const hasNewPhone = phoneNumber && !phonesSeen.has(phoneNumber);
+
+    if (hasNewEmail || hasNewPhone) {
+      const [newSecondary] = await trx('contacts')
+        .insert({
+          email,
+          phone_number: phoneNumber,
+          linked_id: truePrimary.id,
+          link_precedence: 'secondary'
+        })
+        .returning('*');
+      
+      componentContacts.push(newSecondary);
+    }
+
+    // Advanced logic to be added here for response building
 
     await trx.commit();
     return {};
