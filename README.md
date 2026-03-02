@@ -7,6 +7,12 @@ This repository contains the backend service for identifying and reconciling cus
 - PostgreSQL
 - Docker & Docker Compose (optional for local deployment)
 
+## Live API Endpoint
+The service is currently deployed on Render and is accessible at:
+```
+https://bitespeed-888s.onrender.com
+```
+
 ## Local Setup
 
 1. **Install Dependencies**
