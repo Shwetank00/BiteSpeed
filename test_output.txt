@@ -1,0 +1,65 @@
+
+> bounceback@1.0.0 test
+> jest --runInBand
+
+FAIL tests/identityService.unit.test.js
+  ● Console
+
+    console.log
+      [dotenv@17.3.1] injecting env (0) from .env -- tip: ⚡️ secrets for agents: https://dotenvx.com/as2
+
+      at _log (node_modules/dotenv/lib/main.js:139:11)
+
+  ● IdentityService Unit Tests › A) No existing -> creates primary
+
+    AggregateError:
+
+
+  ● IdentityService Unit Tests › B) Same phone, new email -> creates secondary
+
+    AggregateError:
+
+
+  ● IdentityService Unit Tests › C) Two primaries exist, request bridges -> merge and demote newer primary
+
+    AggregateError:
+
+
+  ● IdentityService Unit Tests › D) Repeat request no new info -> no new row
+
+    AggregateError:
+
+
+  ● IdentityService Unit Tests › E) Email-only and phone-only produce same consolidated response
+
+    AggregateError:
+
+
+FAIL tests/identify.integration.test.js
+  ● Console
+
+    console.log
+      [dotenv@17.3.1] injecting env (0) from .env -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
+
+      at _log (node_modules/dotenv/lib/main.js:139:11)
+
+  ● Identify Route Integration Tests › Returns 400 when missing both email and phone
+
+    AggregateError:
+
+
+  ● Identify Route Integration Tests › Creates primary on new request and returns 200
+
+    AggregateError:
+
+
+  ● Identify Route Integration Tests › Links new info to existing primary
+
+    AggregateError:
+
+
+Test Suites: 2 failed, 2 total
+Tests:       8 failed, 8 total
+Snapshots:   0 total
+Time:        1.982 s, estimated 3 s
+Ran all test suites.

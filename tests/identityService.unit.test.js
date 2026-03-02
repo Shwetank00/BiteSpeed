@@ -11,6 +11,8 @@ describe('IdentityService Unit Tests', () => {
   });
 
   afterAll(async () => {
+    // Wait slightly to ensure connections finish
+    await new Promise(resolve => setTimeout(resolve, 500));
     await knex.destroy();
   });
 
