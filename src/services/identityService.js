@@ -34,8 +34,65 @@ async function reconcile({ email, phoneNumber }) {
       };
     }
 
-    // Advanced logic to be added here
+    // Step 2: Expand to full connected component via iterative closure
+    let idsSeen = new Set(initialMatches.map((c) => c.id));
+    let emailsSeen = new Set(
+      initialMatches.map((c) => c.email).filter(Boolean)
+    );
+    let phonesSeen = new Set(
+      initialMatches.map((c) => c.phone_number).filter(Boolean)
+    );
     
+    // Add input to seen sets to catch cases where input connects to existing
+    if (email) emailsSeen.add(email);
+    if (phoneNumber) phonesSeen.add(phoneNumber);
+
+    let componentContacts = [...initialMatches];
+    let sizeBefore = 0;
+
+    while (idsSeen.size > sizeBefore) {
+      sizeBefore = idsSeen.size;
+
+      const expanded = await trx('contacts')
+        .whereNull('deleted_at')
+        .andWhere(function () {
+          if (emailsSeen.size > 0) this.orWhereIn('email', Array.from(emailsSeen));
+          if (phonesSeen.size > 0) this.orWhereIn('phone_number', Array.from(phonesSeen));
+          if (idsSeen.size > 0) {
+            this.orWhereIn('id', Array.from(idsSeen));
+            this.orWhereIn('linked_id', Array.from(idsSeen));
+          }
+        })
+        .forUpdate();
+
+      for (const c of expanded) {
+        if (!idsSeen.has(c.id)) {
+          idsSeen.add(c.id);
+          if (c.email) emailsSeen.add(c.email);
+          if (c.phone_number) phonesSeen.add(c.phone_number);
+          
+          if (c.linked_id) idsSeen.add(c.linked_id);
+          componentContacts.push(c);
+        }
+      }
+    }
+
+    // Sort by created_at asc, then id asc to find true primary
+    componentContacts.sort((a, b) => {
+      const dateA = new Date(a.created_at).getTime();
+      const dateB = new Date(b.created_at).getTime();
+      if (dateA !== dateB) return dateA - dateB;
+      return a.id - b.id;
+    });
+
+    const truePrimary = componentContacts[0];
+    if (truePrimary.link_precedence !== 'primary') {
+      // In case the oldest is currently a secondary, though schema usually says oldest is primary.
+      // But we will base logic on truePrimary.
+    }
+
+    // Advanced logic to be added here for demotion and creation
+
     await trx.commit();
     return {};
   } catch (error) {
