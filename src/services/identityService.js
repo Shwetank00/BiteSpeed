@@ -141,10 +141,49 @@ async function reconcile({ email, phoneNumber }) {
       componentContacts.push(newSecondary);
     }
 
-    // Advanced logic to be added here for response building
+    // Step 6: Build response
+    const finalComponent = await trx('contacts')
+      .whereNull('deleted_at')
+      .andWhere(function() {
+        this.where('id', truePrimary.id).orWhere('linked_id', truePrimary.id);
+      })
+      .orderBy('created_at', 'asc')
+      .orderBy('id', 'asc');
+
+    const emails = [];
+    const phoneNumbers = [];
+    const secondaryContactIds = [];
+
+    // Primary first
+    if (truePrimary.email) emails.push(truePrimary.email);
+    if (truePrimary.phone_number) phoneNumbers.push(truePrimary.phone_number);
+
+    // Then others
+    for (const c of finalComponent) {
+      if (c.email && !emails.includes(c.email)) {
+        emails.push(c.email);
+      }
+      if (c.phone_number && !phoneNumbers.includes(c.phone_number)) {
+        phoneNumbers.push(c.phone_number);
+      }
+      if (c.id !== truePrimary.id) {
+        secondaryContactIds.push(c.id);
+      }
+    }
+
+    // Ensure secondaryContactIds is sorted (though order by created_at / id mostly covers it, spec asks for sorted asc)
+    secondaryContactIds.sort((a, b) => a - b);
 
     await trx.commit();
-    return {};
+
+    return {
+      contact: {
+        primaryContatctId: truePrimary.id,
+        emails,
+        phoneNumbers,
+        secondaryContactIds
+      }
+    };
   } catch (error) {
     await trx.rollback();
     throw error;
