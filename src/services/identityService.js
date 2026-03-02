@@ -91,7 +91,40 @@ async function reconcile({ email, phoneNumber }) {
       // But we will base logic on truePrimary.
     }
 
-    // Advanced logic to be added here for demotion and creation
+    // Step 4: Demote other primaries and re-point secondaries
+    const idsToDemote = [];
+    const idsToRepoint = [];
+
+    for (const c of componentContacts) {
+      if (c.id === truePrimary.id) continue;
+
+      if (c.link_precedence === 'primary') {
+        idsToDemote.push(c.id);
+      } else if (c.linked_id !== truePrimary.id) {
+        idsToRepoint.push(c.id);
+      }
+    }
+
+    if (idsToDemote.length > 0) {
+      await trx('contacts')
+        .whereIn('id', idsToDemote)
+        .update({
+          link_precedence: 'secondary',
+          linked_id: truePrimary.id,
+          updated_at: knex.fn.now()
+        });
+    }
+
+    if (idsToRepoint.length > 0) {
+      await trx('contacts')
+        .whereIn('id', idsToRepoint)
+        .update({
+          linked_id: truePrimary.id,
+          updated_at: knex.fn.now()
+        });
+    }
+
+    // Advanced logic to be added here for creation of new secondary
 
     await trx.commit();
     return {};
